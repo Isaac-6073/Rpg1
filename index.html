@@ -22,48 +22,59 @@ const screen = document.getElementById("screen");
 
 async function main() {
 
-    // 브라우저에서 Python 실행기 불러오기
     const pyodide = await loadPyodide();
 
     screen.textContent = "";
 
-    // Python의 print()와 input() 안내문을
-    // 웹페이지에 그대로 출력
+    // print() 출력
     pyodide.setStdout({
-        raw: (byte) => {
-            screen.textContent += String.fromCharCode(byte);
+        batched: (text) => {
+            screen.textContent += text + "\n";
         }
     });
 
-    // Python 에러도 웹페이지에 출력
+    // 에러 출력
     pyodide.setStderr({
-        raw: (byte) => {
-            screen.textContent += String.fromCharCode(byte);
+        batched: (text) => {
+            screen.textContent += text + "\n";
         }
     });
 
-    // Python의 input()이 실행되면
-    // Safari 입력 팝업을 띄움
-    pyodide.setStdin({
-        stdin: () => {
-            const value = window.prompt("입력하세요");
-            return value;
-        }
+    // Safari 팝업을 Python에서 쓸 수 있게 넘겨줌
+    pyodide.globals.set("browser_prompt", (text) => {
+        return window.prompt(text);
     });
 
-    // 같은 GitHub 폴더에 있는 game.py를 읽음
+    // game.py 읽기
     const response = await fetch("game.py");
 
     if (!response.ok) {
-        screen.textContent +=
-            "\ngame.py를 불러오지 못했습니다.\n";
+        screen.textContent += "game.py를 불러오지 못했습니다.\n";
         return;
     }
 
-    const code = await response.text();
+    const gameCode = await response.text();
 
-    // 네 game.py를 그대로 실행
-    await pyodide.runPythonAsync(code);
+    // Python 기본 input()만 웹용으로 교체
+    const wrapper = `
+import builtins
+import js
+
+def web_input(prompt=""):
+    value = js.browser_prompt(prompt)
+
+    if value is None:
+        raise EOFError("입력이 취소되었습니다.")
+
+    return str(value)
+
+builtins.input = web_input
+
+${gameCode}
+`;
+
+    // 네 game.py 실행
+    await pyodide.runPythonAsync(wrapper);
 }
 
 main();
