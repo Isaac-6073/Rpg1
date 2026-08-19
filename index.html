@@ -8,6 +8,39 @@
   <title>RPG1</title>
 
   <script src="https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"></script>
+
+  <style>
+    body {
+      font-family: monospace;
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    #screen {
+      white-space: pre-wrap;
+      border: 1px solid #999;
+      padding: 15px;
+      min-height: 250px;
+      margin-bottom: 10px;
+    }
+
+    #inputArea {
+      display: flex;
+      gap: 8px;
+    }
+
+    #inputBox {
+      flex: 1;
+      font-size: 18px;
+      padding: 8px;
+    }
+
+    button {
+      font-size: 18px;
+      padding: 8px 16px;
+    }
+  </style>
 </head>
 
 <body>
@@ -16,65 +49,132 @@
 
 <pre id="screen">Python 불러오는 중...</pre>
 
+<div id="inputArea">
+  <input id="inputBox" type="text" disabled>
+  <button id="enterButton" disabled>Enter</button>
+</div>
+
 <script>
 
 const screen = document.getElementById("screen");
+const inputBox = document.getElementById("inputBox");
+const enterButton = document.getElementById("enterButton");
+
+let currentResolve = null;
+
+
+// 화면 출력
+function write(text) {
+  screen.textContent += text;
+}
+
+
+// 사용자가 Enter를 눌렀을 때
+function submitInput() {
+
+  if (!currentResolve) {
+    return;
+  }
+
+  const value = inputBox.value;
+
+  write(value + "\n");
+
+  inputBox.value = "";
+
+  inputBox.disabled = true;
+  enterButton.disabled = true;
+
+  const resolve = currentResolve;
+  currentResolve = null;
+
+  resolve(value);
+}
+
+
+// 버튼 클릭
+enterButton.addEventListener("click", submitInput);
+
+
+// 키보드 Enter
+inputBox.addEventListener("keydown", function(event) {
+
+  if (event.key === "Enter") {
+    submitInput();
+  }
+
+});
+
+
+// Python input() 대신 사용될 함수
+async function browserInput(promptText) {
+
+  write(promptText);
+
+  inputBox.disabled = false;
+  enterButton.disabled = false;
+
+  inputBox.focus();
+
+  return await new Promise((resolve) => {
+    currentResolve = resolve;
+  });
+}
+
 
 async function main() {
 
-    const pyodide = await loadPyodide();
+  const pyodide = await loadPyodide();
 
-    screen.textContent = "";
+  screen.textContent = "";
 
-    // print() 출력
-    pyodide.setStdout({
-        batched: (text) => {
-            screen.textContent += text + "\n";
-        }
-    });
-
-    // 에러 출력
-    pyodide.setStderr({
-        batched: (text) => {
-            screen.textContent += text + "\n";
-        }
-    });
-
-    // Safari 팝업을 Python에서 쓸 수 있게 넘겨줌
-    pyodide.globals.set("browser_prompt", (text) => {
-        return window.prompt(text);
-    });
-
-    // game.py 읽기
-    const response = await fetch("game.py");
-
-    if (!response.ok) {
-        screen.textContent += "game.py를 불러오지 못했습니다.\n";
-        return;
+  // Python print() 출력
+  pyodide.setStdout({
+    batched: (text) => {
+      write(text + "\n");
     }
+  });
 
-    const gameCode = await response.text();
+  // Python 에러 출력
+  pyodide.setStderr({
+    batched: (text) => {
+      write(text + "\n");
+    }
+  });
 
-    // Python 기본 input()만 웹용으로 교체
-    const wrapper = `
+  // JavaScript의 browserInput을 Python에서 사용
+  pyodide.globals.set("browser_input", browserInput);
+
+  // game.py 읽기
+  const response = await fetch("game.py");
+
+  if (!response.ok) {
+    write("game.py를 불러오지 못했습니다.\n");
+    return;
+  }
+
+  const gameCode = await response.text();
+
+
+  // Python의 기본 input()만 웹용으로 교체
+  const wrapper = `
 import builtins
 import js
 
 def web_input(prompt=""):
-    value = js.browser_prompt(prompt)
 
-    if value is None:
-        raise EOFError("입력이 취소되었습니다.")
+    result = js.browser_input(prompt)
 
-    return str(value)
+    # JavaScript Promise를 기다림
+    return result
+
 
 builtins.input = web_input
 
 ${gameCode}
 `;
 
-    // 네 game.py 실행
-    await pyodide.runPythonAsync(wrapper);
+  await pyodide.runPythonAsync(wrapper);
 }
 
 main();
