@@ -22,38 +22,47 @@ const screen = document.getElementById("screen");
 
 async function main() {
 
-    // Python 실행기 불러오기
+    // 브라우저에서 Python 실행기 불러오기
     const pyodide = await loadPyodide();
 
     screen.textContent = "";
 
-    // print() 결과를 화면에 표시
+    // Python의 print()와 input() 안내문을
+    // 웹페이지에 그대로 출력
     pyodide.setStdout({
-        batched: (text) => {
-            screen.textContent += text + "\n";
+        raw: (byte) => {
+            screen.textContent += String.fromCharCode(byte);
         }
     });
 
-    // 에러도 화면에 표시
+    // Python 에러도 웹페이지에 출력
     pyodide.setStderr({
-        batched: (text) => {
-            screen.textContent += text + "\n";
+        raw: (byte) => {
+            screen.textContent += String.fromCharCode(byte);
         }
     });
 
-    // Python의 input()을 브라우저 팝업 입력과 연결
+    // Python의 input()이 실행되면
+    // Safari 입력 팝업을 띄움
     pyodide.setStdin({
         stdin: () => {
-            const value = window.prompt("게임 입력");
+            const value = window.prompt("입력하세요");
             return value;
         }
     });
 
-    // 같은 폴더의 game.py 읽기
+    // 같은 GitHub 폴더에 있는 game.py를 읽음
     const response = await fetch("game.py");
+
+    if (!response.ok) {
+        screen.textContent +=
+            "\ngame.py를 불러오지 못했습니다.\n";
+        return;
+    }
+
     const code = await response.text();
 
-    // game.py 실행
+    // 네 game.py를 그대로 실행
     await pyodide.runPythonAsync(code);
 }
 
@@ -62,4 +71,5 @@ main();
 </script>
 
 </body>
+
 </html>
