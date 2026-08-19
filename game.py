@@ -1,13 +1,7 @@
 import random
-import js
 
-async def input_web(text=""):
-    value = await js.browser_input(text)
-    return str(value)
-
-
-async def game():
-    hp = int(await input_web("당신의 HP는?\n➡️ "))
+def game():
+    hp = int(input("당신의 HP는?\n➡️ "))
 
     for i in range(5):
         damage = random.randint(10, 50000)
@@ -29,12 +23,12 @@ async def game():
 print("안녕하세요 이승훈입니다.")
 print("게임시작하겠습니다.")
 
-gs = int(await input_web("시작하려면 1을 입력하시오.\n➡️ "))
+gs = int(input("시작하려면 1을 입력하시오.\n"))
 
 if gs == 1:
     print("게임시작!")
     print("====================")
-    await game()
+    game()
 
 else:
     print("게임종료")
