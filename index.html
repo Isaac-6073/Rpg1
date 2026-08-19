@@ -2,156 +2,33 @@
 <html lang="ko">
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>RPG1</title>
+    <title>RPG1</title>
 
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"></script>
+    <link
+        rel="stylesheet"
+        href="https://pyscript.net/releases/2026.3.1/core.css"
+    >
 
-  <style>
-    body {
-      font-family: monospace;
-      max-width: 700px;
-      margin: 30px auto;
-      padding: 20px;
-    }
-
-    #screen {
-      white-space: pre-wrap;
-      border: 1px solid #999;
-      padding: 15px;
-      min-height: 250px;
-      margin-bottom: 10px;
-    }
-
-    #inputArea {
-      display: flex;
-      gap: 8px;
-    }
-
-    #inputBox {
-      flex: 1;
-      font-size: 18px;
-      padding: 8px;
-    }
-
-    #enterButton {
-      font-size: 18px;
-      padding: 8px 16px;
-    }
-  </style>
+    <script
+        type="module"
+        src="https://pyscript.net/releases/2026.3.1/core.js">
+    </script>
 </head>
 
 <body>
 
 <h1>RPG1</h1>
 
-<pre id="screen">Python 불러오는 중...</pre>
-
-<div id="inputArea">
-  <input id="inputBox" type="text" disabled>
-  <button id="enterButton" disabled>Enter</button>
-</div>
-
-<script>
-
-const screen = document.getElementById("screen");
-const inputBox = document.getElementById("inputBox");
-const enterButton = document.getElementById("enterButton");
-
-let resolveInput = null;
-
-
-function write(text) {
-  screen.textContent += text;
-}
-
-
-function submitInput() {
-
-  if (resolveInput === null) {
-    return;
-  }
-
-  const value = inputBox.value;
-
-  write(value + "\n");
-
-  inputBox.value = "";
-  inputBox.disabled = true;
-  enterButton.disabled = true;
-
-  const resolve = resolveInput;
-  resolveInput = null;
-
-  resolve(value);
-}
-
-
-enterButton.addEventListener("click", submitInput);
-
-
-inputBox.addEventListener("keydown", function(event) {
-
-  if (event.key === "Enter") {
-    submitInput();
-  }
-
-});
-
-
-function browserInput(promptText) {
-
-  write(promptText);
-
-  inputBox.disabled = false;
-  enterButton.disabled = false;
-
-  inputBox.focus();
-
-  return new Promise((resolve) => {
-    resolveInput = resolve;
-  });
-}
-
-
-async function main() {
-
-  const pyodide = await loadPyodide();
-
-  screen.textContent = "";
-
-  pyodide.setStdout({
-    batched: (text) => {
-      write(text + "\n");
-    }
-  });
-
-  pyodide.setStderr({
-    batched: (text) => {
-      write(text + "\n");
-    }
-  });
-
-  pyodide.globals.set("browser_input", browserInput);
-
-  const response = await fetch("game.py");
-
-  if (!response.ok) {
-    write("game.py를 불러오지 못했습니다.\n");
-    return;
-  }
-
-  const code = await response.text();
-
-  await pyodide.runPythonAsync(code);
-}
-
-
-main();
-
+<script
+    type="py"
+    src="./game.py"
+    terminal
+    worker>
 </script>
 
 </body>
+
 </html>
