@@ -1,34 +1,126 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>RPG1</title>
-
-    <link
-        rel="stylesheet"
-        href="https://pyscript.net/releases/2026.3.1/core.css"
-    >
-
-    <script
-        type="module"
-        src="https://pyscript.net/releases/2026.3.1/core.js">
-    </script>
 </head>
 
 <body>
 
 <h1>RPG1</h1>
 
-<script
-    type="py"
-    src="./game.py"
-    terminal
-    worker>
+<pre id="screen">
+안녕하세요 이승훈입니다.
+게임시작하겠습니다.
+</pre>
+
+<input id="input" type="number">
+
+<button onclick="enter()">Enter</button>
+
+<script>
+
+let step = "start";
+let hp = 0;
+let turn = 0;
+
+const screen = document.getElementById("screen");
+const input = document.getElementById("input");
+
+
+function print(text) {
+    screen.textContent += text + "\n";
+}
+
+
+print("시작하려면 1을 입력하시오.");
+
+
+function enter() {
+
+    let value = Number(input.value);
+    input.value = "";
+
+
+    // 게임 시작
+    if (step === "start") {
+
+        if (value === 1) {
+
+            print("게임시작!");
+            print("====================");
+            print("당신의 HP는?");
+
+            step = "hp";
+
+        } else {
+
+            print("게임종료");
+            input.disabled = true;
+
+        }
+
+        return;
+    }
+
+
+    // HP 입력
+    if (step === "hp") {
+
+        hp = value;
+
+        print("HP : " + hp);
+
+        step = "battle";
+
+        battle();
+
+    }
+
+}
+
+
+function battle() {
+
+    for (let i = 0; i < 5; i++) {
+
+        let damage =
+            Math.floor(Math.random() * 49991) + 10;
+
+        print(damage + " 의 데미지를 받았다!");
+
+        hp = hp - damage;
+
+        print(
+            "현재 hp : " +
+            hp +
+            " 턴수 : " +
+            (i + 1)
+        );
+
+
+        if (hp <= 0) {
+
+            print("You die...");
+            return;
+
+        }
+
+    }
+
+
+    if (hp > 0) {
+
+        print("살아남으셨습니다 ㅊㅊ");
+
+    }
+
+}
+
 </script>
 
 </body>
-
 </html>
