@@ -7,7 +7,7 @@
 
   <title>RPG1</title>
 
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"></script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"></script>
 </head>
 
 <body>
@@ -16,12 +16,48 @@
 
 <pre id="screen">Python 불러오는 중...</pre>
 
-<input id="inputBox">
-<button onclick="sendInput()">Enter</button>
-
 <script>
 
 const screen = document.getElementById("screen");
+
+async function main() {
+
+    // Python 실행기 불러오기
+    const pyodide = await loadPyodide();
+
+    screen.textContent = "";
+
+    // print() 결과를 화면에 표시
+    pyodide.setStdout({
+        batched: (text) => {
+            screen.textContent += text + "\n";
+        }
+    });
+
+    // 에러도 화면에 표시
+    pyodide.setStderr({
+        batched: (text) => {
+            screen.textContent += text + "\n";
+        }
+    });
+
+    // Python의 input()을 브라우저 팝업 입력과 연결
+    pyodide.setStdin({
+        stdin: () => {
+            const value = window.prompt("게임 입력");
+            return value;
+        }
+    });
+
+    // 같은 폴더의 game.py 읽기
+    const response = await fetch("game.py");
+    const code = await response.text();
+
+    // game.py 실행
+    await pyodide.runPythonAsync(code);
+}
+
+main();
 
 </script>
 
